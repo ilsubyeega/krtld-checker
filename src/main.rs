@@ -1,23 +1,25 @@
 use dotenv::dotenv;
-use miette::{bail, IntoDiagnostic};
+use miette::{bail, miette, IntoDiagnostic};
 use reqwest::Url;
 use serde_json::Value;
 use std::{env, str::FromStr};
 
 #[tokio::main]
-async fn main() {
+async fn main() -> miette::Result<()> {
     dotenv().ok();
 
-    let api_key = env::var("KRTLD_KEY")
-        .expect("The environment `KRTLD_KEY` does not in the current environment.");
+    let api_key = env::var("KRTLD_KEY").map_err(|_| {
+        miette!("The Environment variable: KRTLD_KEY does not found in your environment.")
+    })?;
 
-    let index = env::var("KRTLD_INDEX")
-        .expect("The environment `KRTLD_INDEX` does not in the current environment.");
+    let index = env::var("KRTLD_INDEX").map_err(|_| {
+        miette!("The Environment variable: KRTLD_INDEX does not found in your environment.")
+    })?;
 
     let mut index: usize = index
         .trim()
         .parse()
-        .expect(&format!("The index is not a number, found: {}", index));
+        .map_err(|_| miette!("The index is not a number, found: {}", index))?;
 
     let arr = generate_arr();
 
@@ -25,27 +27,27 @@ async fn main() {
 
     for name in arr.into_iter().skip(index) {
         index += 1;
-        let check = check_domain_available(&api_key, &name)
-            .await
-            .expect(&format!(
+        let check = check_domain_available(&api_key, &name).await.map_err(|_| {
+            miette!(
                 "Failed while checking the domain status: {}, index {}",
-                name, index
-            ));
+                name,
+                index
+            )
+        })?;
         if check {
             println!("Available: {}", name);
         }
     }
     println!("Done!");
+    Ok(())
 }
 
 fn generate_arr() -> Vec<String> {
-    let alphabets = 'a'..='z';
-
     let mut string_arr: Vec<String> = vec![];
 
-    for a in alphabets {
-        for b in alphabets {
-            for c in alphabets {
+    for a in 'a'..='z' {
+        for b in 'a'..='z' {
+            for c in 'a'..='z' {
                 string_arr.push(format!("{a}{b}{c}"));
             }
         }
