@@ -92,9 +92,9 @@ async fn check_domain_available(api_key: &str, domain: &str) -> miette::Result<b
         match result_code {
             0 => bail!("result_code was null"),
             22 => bail!("The api key seems to be wrong"),
-            100 => Ok(false),
+            100 => Ok(true),
             113 => Ok(false), // 상기 도메인이름은 도메인이름의 안정적 관리와 공공의 이익 등을 위하여등록이 제한된 도메인이름입니다
-            10000 => Ok(true),
+            10000 => Ok(false),
             _ => {
                 println!("{}", &resp);
                 bail!("dunno about this type of result code: {}", result_code)
