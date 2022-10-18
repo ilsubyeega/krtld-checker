@@ -20,7 +20,7 @@ async fn main() -> miette::Result<()> {
         .trim()
         .parse()
         .into_diagnostic()
-        .wrap_err("The Environment variable: KRTLD_INDEX is not a valid number.")?; // TODO: Add those stuffs
+        .wrap_err("The Environment variable: KRTLD_INDEX is not a valid number.")?;
 
     let arr = generate_arr();
 
@@ -76,9 +76,9 @@ async fn check_domain_available(api_key: &str, domain: &str) -> miette::Result<b
         .into_diagnostic()?;
     let from_str = serde_json::from_str(&resp);
 
-    let parsed: Value = from_str.or_else(|_| {
+    let parsed: Value = from_str.into_diagnostic().wrap_err_with(|| {
         eprintln!("{}", &resp);
-        bail!("Could not parse data.")
+        "Could not parse data."
     })?;
 
     let result_code = &parsed["response"]["result"]["result_code"];
