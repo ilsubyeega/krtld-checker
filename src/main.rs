@@ -1,5 +1,5 @@
 use dotenv::dotenv;
-use miette::{bail, miette, IntoDiagnostic};
+use miette::{bail, Context, IntoDiagnostic};
 use reqwest::Url;
 use serde_json::Value;
 use std::{env, str::FromStr};
@@ -8,18 +8,19 @@ use std::{env, str::FromStr};
 async fn main() -> miette::Result<()> {
     dotenv().ok();
 
-    let api_key = env::var("KRTLD_KEY").map_err(|_| {
-        miette!("The Environment variable: KRTLD_KEY does not found in your environment.")
-    })?;
+    let api_key = env::var("KRTLD_KEY")
+        .into_diagnostic()
+        .wrap_err("The Environment variable: KRTLD_KEY does not found in your environment.")?;
 
-    let index = env::var("KRTLD_INDEX").map_err(|_| {
-        miette!("The Environment variable: KRTLD_INDEX does not found in your environment.")
-    })?;
+    let index = env::var("KRTLD_INDEX")
+        .into_diagnostic()
+        .wrap_err("The Environment variable: KRTLD_INDEX does not found in your environment.")?;
 
     let mut index: usize = index
         .trim()
         .parse()
-        .map_err(|_| miette!("The index is not a number, found: {}", index))?;
+        .into_diagnostic()
+        .wrap_err("The Environment variable: KRTLD_INDEX is not a valid number.")?; // TODO: Add those stuffs
 
     let arr = generate_arr();
 
@@ -27,13 +28,12 @@ async fn main() -> miette::Result<()> {
 
     for name in arr.into_iter().skip(index) {
         index += 1;
-        let check = check_domain_available(&api_key, &name).await.map_err(|_| {
-            miette!(
+        let check = check_domain_available(&api_key, &name)
+            .await
+            .wrap_err(format!(
                 "Failed while checking the domain status: {}, index {}",
-                name,
-                index
-            )
-        })?;
+                name, index
+            ))?;
         if check {
             println!("Available: {}", name);
         }
@@ -92,9 +92,9 @@ async fn check_domain_available(api_key: &str, domain: &str) -> miette::Result<b
         match result_code {
             0 => bail!("result_code was null"),
             22 => bail!("The api key seems to be wrong"),
-            100 => Ok(true),
+            100 => Ok(true), // Domain is not registered
             113 => Ok(false), // 상기 도메인이름은 도메인이름의 안정적 관리와 공공의 이익 등을 위하여등록이 제한된 도메인이름입니다
-            10000 => Ok(false),
+            10000 => Ok(false), // Domain is registered
             _ => {
                 println!("{}", &resp);
                 bail!("dunno about this type of result code: {}", result_code)
