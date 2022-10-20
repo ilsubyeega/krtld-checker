@@ -12,3 +12,6 @@ KRTLD_INDEX=0
 ```powershell
 cargo run | Tee-Object -Append -file .\output.txt
 ```
+
+## 결과
+https://gist.github.com/ilsubyeega/d64dbc3706da3be37170177359eae5fb
